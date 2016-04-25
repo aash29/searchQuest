@@ -1,6 +1,5 @@
 #! /usr/bin/python
 import os
-import random
 import sqlite3
 import random
 import string
@@ -58,13 +57,33 @@ for row in c.execute("select name, surname from ppl"):
 '''
 #print(len(ppl));
 
+
+from random import randrange
+from datetime import datetime
+from datetime import timedelta
+
+def random_date(start, end):
+    """
+    This function will return a random datetime between two datetime
+    objects.
+    """
+    delta = end - start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = randrange(int_delta)
+    return start + timedelta(seconds=random_second)
+
+d1 = datetime.strptime('1/1/2008 21:30', '%d/%m/%Y %H:%M')
+d2 = datetime.strptime('1/1/2009 14:50', '%d/%m/%Y %H:%M')
+
+print(random_date(d1, d2))
+
 #сгенерим траффик
 
 msgs = [];
 
 c.execute('DROP TABLE IF EXISTS msgs')
 c.execute('''CREATE TABLE msgs
-             (id integer, service text, fromuser text, touser text)''')
+             (id integer, timestamp integer,service text, fromuser text, touser text)''')
 
 for i in range(0,100):
     cid = random.choice([x['id'] for x in ppl])
@@ -72,6 +91,7 @@ for i in range(0,100):
     #print(cid)
     rec = dict({})
     rec['id']=i
+    rec['timestamp']=random.randint(0,10000)
     rec['fromid']=cid
     rec['toid']=did
     s1 = random.choice(list(set(services).intersection(ppl[cid].keys())))   #выбирать из тех сервисов, которые есть у человека
@@ -83,7 +103,7 @@ for i in range(0,100):
 
     msgs.append(rec)
 
-    c.execute('insert into msgs values (?,?,?,?)', [i, msgs[-1]['service'], msgs[-1]['fromuser'], msgs[-1]['touser']])
+    c.execute('insert into msgs values (?,?,?,?,?)', [i, msgs[-1]['timestamp'], msgs[-1]['service'], msgs[-1]['fromuser'], msgs[-1]['touser']])
 
 print(msgs)
 
