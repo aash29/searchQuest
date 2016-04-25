@@ -6,6 +6,7 @@ import random
 import string
 
 conn = sqlite3.connect('example.db')
+#conn.row_factory = sqlite3.Row
 c = conn.cursor()
 
 #сгенерим личностей
@@ -22,16 +23,29 @@ with open(os.getcwd()+os.sep+'male_surnames.txt',encoding="utf8") as maleSurname
 
 #print(maleNames)
 
+services = ['email','messenger','forum']
+
 ppl=[]
 
+
 for i in range(0,10):
+
+    rec = dict({})
+    rec['id']=i
+    rec['name']=random.choice(maleNames)
+    rec['surname']=random.choice(maleSurnames)
     em = ''.join(random.choice(string.ascii_lowercase) for _ in range(9))+ ''.join(random.choice(string.digits) for _ in range(2)) +'@'+''.join(random.choice(string.ascii_lowercase) for _ in range(9))+'.com'
-    ppl.append(dict({'id':i,'name':random.choice(maleNames),'surname':random.choice(maleSurnames),'email':em}))
+    rec['email']=em
+    rec['messenger']=''.join(random.choice(string.ascii_lowercase) for _ in range(random.randint(5,8)))
+    rec['forum']=''.join(random.choice(string.ascii_lowercase) for _ in range(random.randint(5,8)))
+
+
+    ppl.append(rec)
     c.execute('insert into ppl values (?,?,?,?)', [i, ppl[-1]['name'], ppl[-1]['surname'], ppl[-1]['email']])
 
 
 #c.executemany("insert into ppl(id , name, surname) values (?, ?, ?)", globalMap)
-
+'''
 
 c.execute('SELECT * FROM ppl')
 # 1 способ напечатать результат
@@ -41,46 +55,81 @@ print(meida)
 for row in c.execute("select name, surname from ppl"):
     print(row)
 
-
+'''
 #print(len(ppl));
 
 #сгенерим траффик
 
 msgs = [];
 
-for i in range(0,10):
+c.execute('DROP TABLE IF EXISTS msgs')
+c.execute('''CREATE TABLE msgs
+             (id integer, service text, fromuser text, touser text)''')
+
+for i in range(0,100):
     cid = random.choice([x['id'] for x in ppl])
     did = random.choice([x['id'] for x in ppl])
     #print(cid)
-    msgs.append(dict({'id':i, 'fromid': cid, 'toid': did, 'fromname':ppl[cid]['name'] }));
+    rec = dict({})
+    rec['id']=i
+    rec['fromid']=cid
+    rec['toid']=did
+    s1 = random.choice(list(set(services).intersection(ppl[cid].keys())))   #выбирать из тех сервисов, которые есть у человека
+    rec['service']=s1
+    fromname = ppl[cid][s1]
+    rec['fromuser']=fromname
+    toname = ppl[did][s1]
+    rec['touser']=toname
 
-print(msgs);
+    msgs.append(rec)
+
+    c.execute('insert into msgs values (?,?,?,?)', [i, msgs[-1]['service'], msgs[-1]['fromuser'], msgs[-1]['touser']])
+
+print(msgs)
 
 
 
-conn.commit();
+conn.commit()
 
+#запускаем командную строку
 
-import cmd, sys
+import cmd, sys, readline
 
 class searchShell(cmd.Cmd):
     intro = 'Type help or ? to list commands.\n'
     prompt = '(echelon) '
-    file = None
+
+    def __init__(self):
+        super(searchShell, self).__init__()
+        self.histfile = os.getcwd()+os.sep+ ".history"
+        try:
+            readline.read_history_file(self.histfile)
+            # default history len is -1 (infinite), which may grow unruly
+            readline.set_history_length(1000)
+        except FileNotFoundError:
+            pass
 
     # ----- basic turtle commands -----
     def do_select(self, arg):
         'search for entries with standart SQL syntax'
         #c.execute('SELECT ' + arg + ' FROM ppl')
-        c.execute('SELECT ' + arg)
-        print (c.fetchall())
+
+        try:
+            for row in c.execute('SELECT ' + arg):
+                print(row)
+        except sqlite3.OperationalError:
+            print ('Error: unknown syntax')
+        #c.execute('SELECT ' + arg)
+        #print (c.fetchall())
+        readline.write_history_file(self.histfile);
 
 def parse(arg):
     'Convert a series of zero or more numbers to an argument tuple'
     return tuple(map(int, arg.split()))
 
 if __name__ == '__main__':
-    searchShell().cmdloop()
+    shell=searchShell()
+    shell.cmdloop()
 
 
 
