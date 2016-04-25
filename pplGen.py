@@ -61,6 +61,26 @@ print(msgs);
 conn.commit();
 
 
+import cmd, sys
+
+class searchShell(cmd.Cmd):
+    intro = 'Type help or ? to list commands.\n'
+    prompt = '(echelon) '
+    file = None
+
+    # ----- basic turtle commands -----
+    def do_select(self, arg):
+        'search for entries with standart SQL syntax'
+        #c.execute('SELECT ' + arg + ' FROM ppl')
+        c.execute('SELECT ' + arg)
+        print (c.fetchall())
+
+def parse(arg):
+    'Convert a series of zero or more numbers to an argument tuple'
+    return tuple(map(int, arg.split()))
+
+if __name__ == '__main__':
+    searchShell().cmdloop()
 
 
 
